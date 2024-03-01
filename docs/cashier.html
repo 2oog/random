@@ -3,326 +3,234 @@
 
 <head>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Chivo+Mono&display=swap" rel="stylesheet">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Chivo+Mono&display=swap" rel="stylesheet">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta charset="UTF-8">
 
-    <style>
-        :root {
-            --border-radius: 1rem;
-        }
+	<link rel="stylesheet" href="./css/global.css">
 
-        * {
-            font-family: 'Chivo Mono', monospace;
-            color: white;
-            font-size: 16px;
-        }
+	<script src="./js/rawbt-thermal-printer-core.js"></script>
+	<script src="./js/rawbt-iconv-lite.bundle.js"></script>
 
-        body {
-            background-color: black;
-        }
+	<script>
+		function formatCashier(itemsString) {
+			const LINE_CHARACTER_LENGTH = 32;
 
-        input,
-        select,
-        textarea {
-            width: 100%;
-            height: auto;
-            padding: 0;
-            border: 0;
-            outline: none;
-            box-sizing: border-box;
-            resize: vertical;
-            text-align: right;
-            color: white;
-            background-color: transparent;
-        }
+			function fillSpace(s) {
+				return s.replaceAll(` `, `&nbsp;`);
+			}
 
-        .row {
-            padding: 0.5rem;
-            margin: 0.5rem 0;
-            background-color: #1b1b25;
-            border-radius: 1rem;
-        }
+			function newLine(s) {
+				return `<div>${s}</div>`;
+			}
 
-        .input-box {
-            padding: 0.5rem;
-            text-align: right;
-            box-sizing: border-box;
-        }
+			function newLineStretch(s) {
+				return `<div class="stretch">${s}</div>`;
+			}
 
-        .row-title {
-            margin: 0.25rem 0 0 0.5rem;
-            font-size: 12px;
-            color: #999;
-        }
+			function itemize(s) {
+				const items = [];
+				const lines = s.split("\n");
+				for (const line of lines) {
+					const parts = line.split(";");
+					let item_name, item_amount, item_price;
+					try {
+						[item_name, item_amount, item_price] = [
+							parts[0],
+							parseInt(parts[1], 10),
+							parseInt(parts[2], 10),
+						];
+					} catch (exception) {
+						[item_name, item_amount, item_price] = ["[err]", 0, 0];
+					}
+					items.push({ item_name, item_amount, item_price });
+				}
+				return items;
+			}
 
-        [contenteditable] {
-            outline: 0;
-        }
+			function formatString(s) {
+				const words = s.split(/\s+/);
+				let formattedString = "";
+				let currentLine = "";
+				for (const word of words) {
+					if ((currentLine + word).length + 1 > LINE_CHARACTER_LENGTH) {
+						formattedString += currentLine.trimEnd() + "\n";
+						currentLine = word + " ";
+					} else {
+						currentLine += word + " ";
+					}
+				}
+				return formattedString + currentLine.trim();
+			}
 
-        .button {
-            display: inline-block;
-            padding: 1rem 1rem;
-            font-size: 24px;
-            cursor: pointer;
-            text-align: center;
-            text-decoration: none;
-            outline: none;
-            color: #fff;
-            background-color: #04AA6D;
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 9px #999;
-        }
+			function formatPrices(amount, price) {
+				const total = amount * price;
+				const formatted = (`${amount.toLocaleString()} x ${price.toLocaleString()}`.padEnd(LINE_CHARACTER_LENGTH - `${total.toLocaleString()}`.length)) + `${total.toLocaleString()}`;
+				return formatted;
+			}
 
-        .button:hover {
-            background-color: #3e8e41
-        }
+			function formatTotal(items) {
+				const total = items.reduce((acc, { item_amount, item_price }) => acc + item_amount * item_price, 0);
+				return "Total".padEnd(LINE_CHARACTER_LENGTH - `${total.toLocaleString()}`.length) + `${total.toLocaleString()}`;
+			}
 
-        .button:active {
-            background-color: #3e8e41;
-            box-shadow: 0 5px #666;
-            transform: translateY(4px);
-        }
+			function separator(char = "-") {
+				return char.repeat(LINE_CHARACTER_LENGTH);
+			}
 
-        .button-container {
-            margin-top: 2rem;
-            display: flex;
-            justify-content: center;
-        }
+			const items = itemize(itemsString.trim());
+			const lines = [getCurrentFormattedTime(), separator(), "   EXPENSE REIMBURSEMENT FORM   ", separator()];
 
-        .stretch {
-            display: inline-block;
-            -webkit-transform: scale(2, 1);
-            -moz-transform: scale(2, 1);
-            -ms-transform: scale(2, 1);
-            -o-transform: scale(2, 1);
-            transform: scale(1, 2);
-        }
-    </style>
+			for (let i = 0; i < items.length; i++) {
+				if (i > 0) lines.push("");
+				const { item_name, item_amount, item_price } = items[i];
+				lines.push(formatString(item_name), formatPrices(item_amount, item_price));
+			}
 
-    <script src="./js/rawbt-thermal-printer-core.js"></script>
-    <script src="./js/rawbt-iconv-lite.bundle.js"></script>
+			lines.push(separator(), formatTotal(items), separator());
 
-    <script>
-        function formatCashier(itemsString) {
-            const LINE_CHARACTER_LENGTH = 32;
+			console.log(lines);
 
-            function fillSpace(s) {
-                return s.replaceAll(` `, `&nbsp;`);
-            }
+			return lines;
+		}
 
-            function newLine(s) {
-                return `<div>${s}</div>`;
-            }
+		function previewTextBuilder(s) {
 
-            function newLineStretch(s) {
-                return `<div class="stretch">${s}</div>`;
-            }
+			function replaceSpace(s) {
+				return s.replaceAll(` `, `&nbsp;`);
+			}
 
-            function itemize(s) {
-                const items = [];
-                const lines = s.split("\n");
-                for (const line of lines) {
-                    const parts = line.split(";");
-                    let item_name, item_amount, item_price;
-                    try {
-                        [item_name, item_amount, item_price] = [
-                            parts[0],
-                            parseInt(parts[1], 10),
-                            parseInt(parts[2], 10),
-                        ];
-                    } catch (exception) {
-                        [item_name, item_amount, item_price] = ["[err]", 0, 0];
-                    }
-                    items.push({ item_name, item_amount, item_price });
-                }
-                return items;
-            }
+			let lines = s.trim().split('\n');
+			for (let i = 0; i < lines.length; i++) {
+				let line = replaceSpace(lines[i]);
+				if (line == ``) line = `<br>`;
+				if (lines[i] == '   EXPENSE REIMBURSEMENT FORM   ' || lines[i].startsWith('Total   ')) {
+					lines[i] = `<div class="stretch" style="font-weight: bold;">${line}</div>`;
+				} else {
+					lines[i] = `<div>${line}</div>`;
+				}
+			}
 
-            function formatString(s) {
-                const words = s.split(/\s+/);
-                let formattedString = "";
-                let currentLine = "";
-                for (const word of words) {
-                    if ((currentLine + word).length + 1 > LINE_CHARACTER_LENGTH) {
-                        formattedString += currentLine.trimEnd() + "\n";
-                        currentLine = word + " ";
-                    } else {
-                        currentLine += word + " ";
-                    }
-                }
-                return formattedString + currentLine.trim();
-            }
+			return lines.join('\n');
+		}
 
-            function formatPrices(amount, price) {
-                const total = amount * price;
-                const formatted = (`${amount.toLocaleString()} x ${price.toLocaleString()}`.padEnd(LINE_CHARACTER_LENGTH - `${total.toLocaleString()}`.length)) + `${total.toLocaleString()}`;
-                return formatted;
-            }
+		function preview() {
 
-            function formatTotal(items) {
-                const total = items.reduce((acc, { item_amount, item_price }) => acc + item_amount * item_price, 0);
-                return "Total".padEnd(LINE_CHARACTER_LENGTH - `${total.toLocaleString()}`.length) + `${total.toLocaleString()}`;
-            }
+			const itemsInput = document.getElementById('itemsInput');
+			const qrCode = document.getElementById('qrCode');
+			const previewDiv = document.getElementById('previewDiv');
 
-            function separator(char = "-") {
-                return char.repeat(LINE_CHARACTER_LENGTH);
-            }
+			const formattedText = formatCashier(itemsInput.innerText).join('\n');
 
-            const items = itemize(itemsString.trim());
-            const lines = [getCurrentFormattedTime(), separator(), "   EXPENSE REIMBURSEMENT FORM   ", separator()];
+			previewDiv.innerHTML = `${previewTextBuilder(formattedText)}${(qrCode.innerText == ``) ? `` : `\n<br>\n&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;QRIS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>&nbsp;&nbsp;&nbsp;<img style="width: auto; height: auto;" src="${qrURL(qrCode.innerText)}">`}`;
+		}
 
-            for (let i = 0; i < items.length; i++) {
-                if (i > 0) lines.push("");
-                const { item_name, item_amount, item_price } = items[i];
-                lines.push(formatString(item_name), formatPrices(item_amount, item_price));
-            }
+		function qrURL(s) {
+			return `https://chart.googleapis.com/chart?cht=qr&choe=UTF-8&chs=250x250&chl=${encodeURIComponent(s)}`;
+		}
 
-            lines.push(separator(), formatTotal(items), separator());
+		function fontDemo() {
+			var c = new PosPrinterJob(getCurrentDriver(), getCurrentTransport());
+			c.initialize();
 
-            console.log(lines);
+			c.printText("Font sizes:", c.ALIGNMENT_LEFT, c.FONT_SIZE_BIG);
+			c.printText("small FONT", c.ALIGNMENT_LEFT, c.FONT_SIZE_SMALL);
+			c.printText("medium 1 FONT", c.ALIGNMENT_LEFT, c.FONT_SIZE_MEDIUM1);
+			c.printText("medium 2 FONT", c.ALIGNMENT_LEFT, c.FONT_SIZE_MEDIUM2);
+			c.printText("medium 3 FONT", c.ALIGNMENT_LEFT, c.FONT_SIZE_MEDIUM3);
+			c.printText("big FONT", c.ALIGNMENT_LEFT, c.FONT_SIZE_BIG);
+			c.printText("double WIDTH", c.ALIGNMENT_LEFT, c.FONT_DOUBLE_WIDTH);
+			c.printText("double HEIGHT", c.ALIGNMENT_LEFT, c.FONT_DOUBLE_HEIGHT);
+			c.setPrintMode(c.FONT_SIZE_BIG + c.FONT_UNDERLINE).printLine("Example");
+			c.feed(3);
 
-            return lines;
-        }
+			c.execute();
+		}
 
-        function previewTextBuilder(s) {
+		function getCurrentFormattedTime() {
+			return new Date().toLocaleString(navigator.language, {
+				weekday: 'short',
+				day: '2-digit',
+				month: 'short',
+				year: 'numeric',
+				hour: '2-digit',
+				minute: '2-digit',
+				second: '2-digit',
+				hour12: false,
+			});
+		}
 
-            function replaceSpace(s) {
-                return s.replaceAll(` `, `&nbsp;`);
-            }
+		function print() {
 
-            let lines = s.trim().split('\n');
-            for (let i = 0; i < lines.length; i++) {
-                let line = replaceSpace(lines[i]);
-                if (line == ``) line = `<br>`;
-                if (lines[i] == '   EXPENSE REIMBURSEMENT FORM   ' || lines[i].startsWith('Total   ')) {
-                    lines[i] = `<div class="stretch" style="font-weight: bold;">${line}</div>`;
-                } else {
-                    lines[i] = `<div>${line}</div>`;
-                }
-            }
+			console.log('PRINTING');
 
-            return lines.join('\n');
-        }
+			const itemsInput = document.getElementById('itemsInput');
+			const qrCode = document.getElementById('qrCode');
 
-        function preview() {
+			const formattedLines = formatCashier(itemsInput.innerText);
 
-            const itemsInput = document.getElementById('itemsInput');
-            const qrCode = document.getElementById('qrCode');
-            const previewDiv = document.getElementById('previewDiv');
+			let c = new PosPrinterJob(getCurrentDriver(), getCurrentTransport());
+			c.initialize();
 
-            const formattedText = formatCashier(itemsInput.innerText).join('\n');
+			for (const line of formattedLines) {
+				if (line == '   EXPENSE REIMBURSEMENT FORM   ') {
+					c.printText(line, c.ALIGNMENT_LEFT, c.FONT_DOUBLE_HEIGHT);
+				} else if (line.startsWith('Total   ')) {
+					c.printText(line, c.ALIGNMENT_LEFT, c.FONT_DOUBLE_HEIGHT, c.FONT_EMPHASIZED);
+				} else {
+					c.printText(line, c.ALIGNMENT_LEFT);
+				}
+			}
 
-            previewDiv.innerHTML = `${previewTextBuilder(formattedText)}${(qrCode.innerText == ``) ? `` : `\n<br>\n&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;QRIS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>&nbsp;&nbsp;&nbsp;<img style="width: auto; height: auto;" src="${qrURL(qrCode.innerText)}">`}`;
-        }
+			if (qrCode.innerText != ``) {
+				let code = qrCode.innerText;
+				let e = 'L';
+				let s = 8;
+				let m = 'Model 2';
+				c.feed(1);
+				c.printText('QRIS', c.ALIGNMENT_CENTER);
+				c.center();
+				c.printQrCode(code, e, s, m);
+			}
 
-        function qrURL(s) {
-            return `https://chart.googleapis.com/chart?cht=qr&choe=UTF-8&chs=250x250&chl=${encodeURIComponent(s)}`;
-        }
+			c.feed(2);
+			c.execute();
 
-        function fontDemo() {
-            var c = new PosPrinterJob(getCurrentDriver(), getCurrentTransport());
-            c.initialize();
+		}
 
-            c.printText("Font sizes:", c.ALIGNMENT_LEFT, c.FONT_SIZE_BIG);
-            c.printText("small FONT", c.ALIGNMENT_LEFT, c.FONT_SIZE_SMALL);
-            c.printText("medium 1 FONT", c.ALIGNMENT_LEFT, c.FONT_SIZE_MEDIUM1);
-            c.printText("medium 2 FONT", c.ALIGNMENT_LEFT, c.FONT_SIZE_MEDIUM2);
-            c.printText("medium 3 FONT", c.ALIGNMENT_LEFT, c.FONT_SIZE_MEDIUM3);
-            c.printText("big FONT", c.ALIGNMENT_LEFT, c.FONT_SIZE_BIG);
-            c.printText("double WIDTH", c.ALIGNMENT_LEFT, c.FONT_DOUBLE_WIDTH);
-            c.printText("double HEIGHT", c.ALIGNMENT_LEFT, c.FONT_DOUBLE_HEIGHT);
-            c.setPrintMode(c.FONT_SIZE_BIG + c.FONT_UNDERLINE).printLine("Example");
-            c.feed(3);
-
-            c.execute();
-        }
-
-        function getCurrentFormattedTime() {
-            return new Date().toLocaleString(navigator.language, {
-                weekday: 'short',
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false,
-            });
-        }
-
-        function print() {
-
-            console.log('PRINTING');
-
-            const itemsInput = document.getElementById('itemsInput');
-            const qrCode = document.getElementById('qrCode');
-
-            const formattedLines = formatCashier(itemsInput.innerText);
-
-            let c = new PosPrinterJob(getCurrentDriver(), getCurrentTransport());
-            c.initialize();
-
-            for (const line of formattedLines) {
-                if (line == '   EXPENSE REIMBURSEMENT FORM   ') {
-                    c.printText(line, c.ALIGNMENT_LEFT, c.FONT_DOUBLE_HEIGHT);
-                } else if (line.startsWith('Total   ')) {
-                    c.printText(line, c.ALIGNMENT_LEFT, c.FONT_DOUBLE_HEIGHT, c.FONT_EMPHASIZED);
-                } else {
-                    c.printText(line, c.ALIGNMENT_LEFT);
-                }
-            }
-
-            if (qrCode.innerText != ``) {
-                let code = qrCode.innerText;
-                let e = 'L';
-                let s = 8;
-                let m = 'Model 2';
-                c.feed(1);
-                c.printText('QRIS', c.ALIGNMENT_CENTER);
-                c.center();
-                c.printQrCode(code, e, s, m);
-            }
-
-            c.feed(2);
-            c.execute();
-
-        }
-
-    </script>
+	</script>
 
 </head>
 
 
 <body>
-    <div class="row">
-        <div class="row-title">Item lists (item;amount;price)</div>
-        <div class="input-box" id="">
-            <div contenteditable style="text-align: left;" id="itemsInput" oninput="preview()"></div>
-        </div>
-    </div>
+	<div class="row">
+		<div class="row-title">Item lists (item;amount;price)</div>
+		<div class="input-box" id="">
+			<div contenteditable style="text-align: left;" id="itemsInput" oninput="preview()"></div>
+		</div>
+	</div>
 
-    <div class="row">
-        <div class="row-title">QRIS Payment Code</div>
-        <div class="input-box" id="">
-            <div contenteditable style="text-align: left;" id="qrCode" oninput="preview()"></div>
-        </div>
-    </div>
+	<div class="row">
+		<div class="row-title">QRIS Payment Code</div>
+		<div class="input-box" id="">
+			<div contenteditable style="text-align: left;" id="qrCode" oninput="preview()"></div>
+		</div>
+	</div>
 
-    <div class="row">
-        <div class="row-title">Preview</div>
-        <div class="input-box" id="">
-            <div style="text-align: left;" id="previewDiv"></div>
-        </div>
-    </div>
+	<div class="row">
+		<div class="row-title">Preview</div>
+		<div class="input-box" id="">
+			<div style="text-align: left;" id="previewDiv"></div>
+		</div>
+	</div>
 
-    <div class="button-container">
-        <button class="button" id="button-print" onclick="print()">🖨️ Print</button>
-    </div>
+	<div class="button-container">
+		<button class="button-print" id="button-print" onclick="print()">🖨️ Print</button>
+	</div>
 </body>
 
 </html>
