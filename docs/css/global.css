@@ -50,7 +50,7 @@ textarea {
     outline: 0;
 }
 
-.button {
+.button-print {
     display: inline-block;
     padding: 1rem 1rem;
     font-size: 24px;
@@ -65,11 +65,11 @@ textarea {
     box-shadow: 0 9px #999;
 }
 
-.button:hover {
+.button-print:hover {
     background-color: #3e8e41
 }
 
-.button:active {
+.button-print:active {
     background-color: #3e8e41;
     box-shadow: 0 5px #666;
     transform: translateY(4px);
