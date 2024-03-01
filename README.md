@@ -1,2 +1,3 @@
-# Contents
-idk, im putting random stuff that i use personally xdd
+# i dunno
+
+im just putting random things here for personal usage xdd
