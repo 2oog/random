@@ -52,18 +52,27 @@
 			}
 
 			function formatString(s) {
-				const words = s.split(/\s+/);
-				let formattedString = "";
-				let currentLine = "";
-				for (const word of words) {
-					if ((currentLine + word).length + 1 > LINE_CHARACTER_LENGTH) {
-						formattedString += currentLine.trimEnd() + "\n";
-						currentLine = word + " ";
-					} else {
-						currentLine += word + " ";
+				s = s.replaceAll(",,,", "\n");
+
+				let lines = s.split('\n');
+				let resultLines = [];
+
+				for (const line of lines) {
+					const words = line.split(/\s+/);
+					let formattedString = "";
+					let currentLine = "";
+					for (const word of words) {
+						if ((currentLine + word).length > LINE_CHARACTER_LENGTH) {
+							formattedString += currentLine.trimEnd() + "\n";
+							currentLine = word + " ";
+						} else {
+							currentLine += word + " ";
+						}
 					}
+					resultLines.push(formattedString + currentLine.trim());
 				}
-				return (formattedString + currentLine.trim()).replaceAll(',,,', '\n');
+
+				return resultLines;
 			}
 
 			function formatPrices(amount, price) {
@@ -82,13 +91,17 @@
 			}
 
 			const items = itemize(itemsString.trim());
-			const lines = [getCurrentFormattedTime(), separator(), "   EXPENSE REIMBURSEMENT FORM   ", separator()];
+			let lines = [getCurrentFormattedTime(), separator(), "   EXPENSE REIMBURSEMENT FORM   ", separator()];
 
 			for (let i = 0; i < items.length; i++) {
 				if (i > 0) lines.push("");
+
 				const { item_name, item_amount, item_price } = items[i];
-				lines.push(formatString(item_name), formatPrices(item_amount, item_price));
+
+				lines.push(...formatString(item_name));
+				lines.push(formatPrices(item_amount, item_price));
 			}
+
 
 			lines.push(separator(), formatTotal(items), separator());
 
