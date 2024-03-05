@@ -63,7 +63,7 @@
 						currentLine += word + " ";
 					}
 				}
-				return formattedString + currentLine.trim();
+				return (formattedString + currentLine.trim()).replaceAll(',,,', '\n');
 			}
 
 			function formatPrices(amount, price) {
@@ -103,7 +103,7 @@
 				return s.replaceAll(` `, `&nbsp;`);
 			}
 
-			let lines = s.trim().replaceAll(',,,', '\n').split('\n');
+			let lines = s.trim().split('\n');
 			for (let i = 0; i < lines.length; i++) {
 				let line = replaceSpace(lines[i]);
 				if (line == ``) line = `<br>`;
