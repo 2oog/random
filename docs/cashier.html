@@ -103,7 +103,7 @@
 				return s.replaceAll(` `, `&nbsp;`);
 			}
 
-			let lines = s.trim().split('\n');
+			let lines = s.trim().replaceAll(',,,', '\n').split('\n');
 			for (let i = 0; i < lines.length; i++) {
 				let line = replaceSpace(lines[i]);
 				if (line == ``) line = `<br>`;
