@@ -6,6 +6,11 @@
     font-family: 'Chivo Mono', monospace;
     color: white;
     font-size: 16px;
+    text-align: left;
+}
+
+a {
+    text-decoration: none;
 }
 
 body {
@@ -34,7 +39,7 @@ textarea {
     border-radius: 1rem;
 }
 
-.input-box {
+.row-content {
     padding: 0.5rem;
     text-align: right;
     box-sizing: border-box;
@@ -88,4 +93,8 @@ textarea {
     -ms-transform: scale(2, 1);
     -o-transform: scale(2, 1);
     transform: scale(1, 2);
+}
+
+.div-link:hover {
+    background-color: #000a66;
 }
