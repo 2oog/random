@@ -2,113 +2,139 @@
 <html>
 
 <head>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Chivo+Mono&display=swap" rel="stylesheet">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta charset="UTF-8">
+	<link rel="stylesheet" href="./css/global.css">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Chivo+Mono&display=swap" rel="stylesheet">
+	<script>
+		
+		let lastInputChanged = '';
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta charset="UTF-8">
+		function showNote(message) {
+			document.getElementById('note').innerHTML = message;
+		}
 
-    <link rel="stylesheet" href="./css/global.css">
+		function handleFileInputChange() {
+			readFile('preview');
+		}
 
-    <script>
+		function handleURLInput() {
+			const urlInput = document.getElementById('urlInput');
+			if (isValidURL(urlInput.innerText)) {
+				document.getElementById('previewImg').src = urlInput.innerText;
+				lastInputChanged = 'url';
+			}
+		}
 
-        let lastChanged = '';
+		function readFile(mode) {
+			const fileInput = document.getElementById('fileInput');
+			const file = fileInput.files[0];
+			if (!file) {
+				if (mode === 'preview') {
+					document.getElementById('previewImg').src = '';
+				}
+				return;
+			}
 
-        function isValidURL(string) {
-            try {
-                new URL(string);
-                return true;
-            } catch (err) {
-                return false;
-            }
-        }
+			const reader = new FileReader();
+			reader.onload = function (e) {
+				const result = e.target.result;
+				if (mode === 'preview') {
+					document.getElementById('previewImg').src = result;
+				} else if (mode === 'print') {
+					sendToPrinter(result);
+				}
+			};
+			reader.readAsDataURL(file);
+			lastInputChanged = 'file';
+		}
 
-        function readFile(mode) {
-            const fileInput = document.getElementById('fileInput');
-            const file = fileInput.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    if (mode === 'preview') {
-                        const previewIMG = document.getElementById('preview-img');
-                        previewIMG.src = e.target.result;
-                    }
-                    if (mode === 'print') {
-                        const base64String = e.target.result;
-                        window.open(`rawbt:${base64String}`, '_blank');
-                    }
-                };
-                reader.readAsDataURL(file);
-                lastChanged = 'fileInput';
-            } else {
-                if (mode === 'preview') {
-                    document.getElementById('preview-img').src = '';
-                }
-            }
-        }
+		function isValidURL(string) {
+			try {
+				new URL(string);
+				return true;
+			} catch (err) {
+				return false;
+			}
+		}
 
-        function preview_url() {
-            const urlInput = document.getElementById('urlInput');
-            if (urlInput && isValidURL(urlInput.innerText)) {
-                const previewIMG = document.getElementById('preview-img');
-                previewIMG.src = urlInput.innerText;
-                lastChanged = 'urlInput';
-            }
-        }
+		async function urlToBase64(url) {
+			showNote('');
+			try {
+				const response = await fetch(url);
+				if (!response.ok) throw new Error('Network response was not ok.');
+				const blob = await response.blob();
+				return new Promise((resolve, reject) => {
+					const reader = new FileReader();
+					reader.onloadend = () => resolve(reader.result);
+					reader.onerror = reject;
+					reader.readAsDataURL(blob);
+				});
+			} catch (error) {
+				console.error("Failed to convert image to Base64:", error);
+				showNote(`Failed to convert image to Base64: ${error}`);
+				return null;
+			}
+		}
 
-        function print() {
-            const fileInput = document.getElementById('fileInput');
-            const urlInput = document.getElementById('urlInput');
-            const note = document.getElementById('note');
-            note.innerHTML = '';
+		function printDocument() {
+			const fileInput = document.getElementById('fileInput');
+			const urlInput = document.getElementById('urlInput');
 
-            if (lastChanged === 'fileInput' && fileInput.files.length > 0) {
-                readFile('print');
-            }
+			showNote('');
 
-            else if (lastChanged === 'urlInput' && isValidURL(urlInput.innerText)) {
-                
-            }
+			if (lastInputChanged === 'file' && fileInput.files.length > 0) {
+				readFile('print');
+			} else if (lastInputChanged === 'url' && isValidURL(urlInput.innerText)) {
+				urlToBase64(urlInput.innerText).then(base64String => {
+					if (base64String) {
+						sendToPrinter(base64String);
+					}
+				});
+			} else {
+				showNote('Error: No valid input to print.');
+			}
+		}
 
-            else {
-                note.innerHTML = 'err';
-            }
-        }
+		function sendToPrinter(base64String) {
+			window.open(`rawbt:${base64String}`);
+		}
 
-    </script>
+	</script>
 
 </head>
 
 <body>
-    <div class="row">
-        <div class="row-title">file</div>
-        <div class="row-content">
-            <input id="fileInput" type="file" onchange="readFile()" />
-        </div>
-    </div>
+	<div class="row">
+		<div class="row-title">File</div>
+		<div class="row-content">
+			<input id="fileInput" type="file" onchange="handleFileInputChange()" />
+		</div>
+	</div>
 
-    <div class="row">
-        <div class="row-title">url</div>
-        <div class="row-content">
-            <div contenteditable id="urlInput" oninput="preview_url()"></div>
-        </div>
-    </div>
+	<div class="row">
+		<div class="row-title">URL</div>
+		<div class="row-content">
+			<div contenteditable id="urlInput" oninput="handleURLInput()"></div>
+		</div>
+	</div>
 
-    <div class="row">
-        <div class="row-title">preview</div>
-        <div class="row-content">
-            <div id="preview" style="width: 100%;">
-                <img id="preview-img" width="100%" referrerpolicy="no-referrer" src="">
-            </div>
-            <div id="note"></div>
-        </div>
-    </div>
+	<div class="row">
+		<div class="row-title">Preview</div>
+		<div class="row-content">
+			<div id="preview" style="width: 100%;">
+				<img id="previewImg" width="100%" referrerpolicy="no-referrer" src="">
+			</div>
+			<div id="note"></div>
+		</div>
+	</div>
 
-    <div class="button-container">
-        <button class="button-print" id="button-print" onclick="print()">🖨️ Print</button>
-    </div>
+	<div class="button-container">
+		<button class="button-print" onclick="printDocument()">🖨️ Print</button>
+	</div>
 </body>
 
 </html>
