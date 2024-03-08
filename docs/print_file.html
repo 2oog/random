@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chivo+Mono&display=swap" rel="stylesheet">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+
+    <link rel="stylesheet" href="./css/global.css">
+
+    <script>
+
+        let lastChanged = '';
+
+        function isValidURL(string) {
+            try {
+                new URL(string);
+                return true;
+            } catch (err) {
+                return false;
+            }
+        }
+
+        function readFile(mode) {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    if (mode === 'preview') {
+                        const previewIMG = document.getElementById('preview-img');
+                        previewIMG.src = e.target.result;
+                    }
+                    if (mode === 'print') {
+                        const base64String = e.target.result;
+                        window.open(`rawbt:${base64String}`, '_blank');
+                    }
+                };
+                reader.readAsDataURL(file);
+                lastChanged = 'fileInput';
+            } else {
+                if (mode === 'preview') {
+                    document.getElementById('preview-img').src = '';
+                }
+            }
+        }
+
+        function preview_url() {
+            const urlInput = document.getElementById('urlInput');
+            if (urlInput && isValidURL(urlInput.innerText)) {
+                const previewIMG = document.getElementById('preview-img');
+                previewIMG.src = urlInput.innerText;
+                lastChanged = 'urlInput';
+            }
+        }
+
+        function print() {
+            const fileInput = document.getElementById('fileInput');
+            const urlInput = document.getElementById('urlInput');
+            const note = document.getElementById('note');
+            note.innerHTML = '';
+
+            if (lastChanged === 'fileInput' && fileInput.files.length > 0) {
+                readFile('print');
+            }
+
+            else if (lastChanged === 'urlInput' && isValidURL(urlInput.innerText)) {
+                
+            }
+
+            else {
+                note.innerHTML = 'err';
+            }
+        }
+
+    </script>
+
+</head>
+
+<body>
+    <div class="row">
+        <div class="row-title">file</div>
+        <div class="row-content">
+            <input id="fileInput" type="file" onchange="readFile()" />
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="row-title">url</div>
+        <div class="row-content">
+            <div contenteditable id="urlInput" oninput="preview_url()"></div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="row-title">preview</div>
+        <div class="row-content">
+            <div id="preview" style="width: 100%;">
+                <img id="preview-img" width="100%" referrerpolicy="no-referrer" src="">
+            </div>
+            <div id="note"></div>
+        </div>
+    </div>
+
+    <div class="button-container">
+        <button class="button-print" id="button-print" onclick="print()">🖨️ Print</button>
+    </div>
+</body>
+
+</html>
