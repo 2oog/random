@@ -57,7 +57,11 @@
 				let lines = s.split('\n');
 				let resultLines = [];
 
-				for (const line of lines) {
+				for (let line of lines) {
+					const dtString = dateTimeToString(parseDateTime(line));
+					console.log(dtString);
+					if (dtString) line = dtString;
+
 					const words = line.split(/\s+/);
 					let formattedString = "";
 					let currentLine = "";
@@ -90,8 +94,42 @@
 				return char.repeat(LINE_CHARACTER_LENGTH);
 			}
 
+			function parseDateTime(dateTimeString) {
+				// date time string format must be "1.2. 21:34" or "31.12.2024. 12:34"
+				const dateTimeArr = dateTimeString.split('.').map(str => parseInt(str.trim(), 10));
+
+				let day = dateTimeArr[0];
+				let month = dateTimeArr[1] - 1; // Adjust month index
+				let year = new Date().getFullYear();
+				let hour = dateTimeArr[2];
+				let minute = dateTimeArr[3];
+
+				if (dateTimeArr.length == 5) {
+					year = dateTimeArr[2];
+					hour = dateTimeArr[3];
+					minute = dateTimeArr[4];
+				}
+
+				return new Date(year, month, day, hour, minute, 0);
+			}
+
+			function dateTimeToString(dt) {
+				const optionWeekday = { weekday: 'long' };
+
+				const optionDateTime = {
+					day: 'numeric',
+					month: 'numeric',
+					year: 'numeric',
+					hour: 'numeric',
+					minute: 'numeric',
+					hourCycle: 'h23',
+				}
+
+				return (!isNaN(dt)) ? `${dt.toLocaleString("id-ID", optionWeekday)}, ${dt.toLocaleString("de-DE", optionDateTime)}` : null;
+			}
+
 			const items = itemize(itemsString.trim());
-			let lines = [getCurrentFormattedTime(), separator(), "   EXPENSE REIMBURSEMENT FORM   ", separator()];
+			let lines = [dateTimeToString(new Date()), separator(), "   EXPENSE REIMBURSEMENT FORM   ", separator()];
 
 			for (let i = 0; i < items.length; i++) {
 				if (i > 0) lines.push("");
@@ -101,7 +139,6 @@
 				lines.push(...formatString(item_name));
 				lines.push(formatPrices(item_amount, item_price));
 			}
-
 
 			lines.push(separator(), formatTotal(items), separator());
 
@@ -161,19 +198,6 @@
 			c.feed(3);
 
 			c.execute();
-		}
-
-		function getCurrentFormattedTime() {
-			return new Date().toLocaleString(navigator.language, {
-				weekday: 'short',
-				day: '2-digit',
-				month: 'short',
-				year: 'numeric',
-				hour: '2-digit',
-				minute: '2-digit',
-				second: '2-digit',
-				hour12: false,
-			});
 		}
 
 		function print() {
