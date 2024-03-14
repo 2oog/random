@@ -36,17 +36,22 @@
 				const lines = s.split("\n");
 				for (const line of lines) {
 					const parts = line.split(";");
-					let item_name, item_amount, item_price;
+					let item_name, item_amount, item_unit = 'pcs', item_price; // Default item_unit to 'pcs'
 					try {
-						[item_name, item_amount, item_price] = [
-							parts[0],
-							parseInt(parts[1], 10),
-							parseInt(parts[2], 10),
-						];
+						item_name = parts[0];
+						// Check if item_amount includes a unit
+						if (parts[1].includes('#')) {
+							const amountParts = parts[1].split('#');
+							item_amount = parseFloat(amountParts[0], 10);
+							item_unit = amountParts[1]; // Override default unit with specified unit
+						} else {
+							item_amount = parseFloat(parts[1], 10);
+						}
+						item_price = parseInt(parts[2], 10);
 					} catch (exception) {
-						[item_name, item_amount, item_price] = ["[err]", 0, 0];
+						[item_name, item_amount, item_unit, item_price] = ["[err]", 0, 'pcs', 0]; // Include 'pcs' as default value for error case
 					}
-					items.push({ item_name, item_amount, item_price });
+					items.push({ item_name, item_amount, item_unit, item_price });
 				}
 				return items;
 			}
@@ -79,9 +84,9 @@
 				return resultLines;
 			}
 
-			function formatPrices(amount, price) {
+			function formatPrices(amount, unit, price) {
 				const total = amount * price;
-				const formatted = (`${amount.toLocaleString()} x ${price.toLocaleString()}`.padEnd(LINE_CHARACTER_LENGTH - `${total.toLocaleString()}`.length)) + `${total.toLocaleString()}`;
+				const formatted = (`${amount.toLocaleString()} ${unit} x ${price.toLocaleString()}`.padEnd(LINE_CHARACTER_LENGTH - `${total.toLocaleString()}`.length)) + `${total.toLocaleString()}`;
 				return formatted;
 			}
 
@@ -134,10 +139,10 @@
 			for (let i = 0; i < items.length; i++) {
 				if (i > 0) lines.push("");
 
-				const { item_name, item_amount, item_price } = items[i];
+				const { item_name, item_amount, item_unit, item_price } = items[i];
 
 				lines.push(...formatString(item_name));
-				lines.push(formatPrices(item_amount, item_price));
+				lines.push(formatPrices(item_amount, item_unit, item_price));
 			}
 
 			lines.push(separator(), formatTotal(items), separator());
@@ -245,7 +250,7 @@
 
 <body>
 	<div class="row">
-		<div class="row-title">Item lists (item;amount;price)</div>
+		<div class="row-title">Item lists (item;amount#unit;price)</div>
 		<div class="row-content">
 			<div contenteditable id="itemsInput" oninput="preview()"></div>
 		</div>
