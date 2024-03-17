@@ -3,176 +3,360 @@
 
 <head>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Chivo+Mono&display=swap" rel="stylesheet">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Chivo+Mono&display=swap" rel="stylesheet">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta charset="UTF-8">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+	<link rel="stylesheet" href="https://cdn.datatables.net/2.0.2/css/dataTables.dataTables.css" />
+	<script src="https://cdn.datatables.net/2.0.2/js/dataTables.js"></script>
 
-    <style>
-        :root {
-            --border-radius: 1rem;
-        }
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta charset="UTF-8">
 
-        * {
-            font-family: 'Chivo Mono', monospace;
-            color: white;
-            font-size: 18px;
-        }
+	<style>
+		/* div {
+			outline: 1px solid gray;
+		} */
 
-        body {
-            background-color: black;
-        }
+		:root {
+			--border-radius: 1rem;
+		}
 
-        input,
-        select {
-            width: 100%;
-            height: 100%;
-            border: 0;
-            outline: none;
-            box-sizing: border-box;
-            resize: vertical;
-            text-align: right;
-            color: white;
-            background-color: transparent;
-        }
+		* {
+			font-family: 'Chivo Mono', monospace;
+			color: white;
+			font-size: 18px;
+		}
 
-        .row {
-            display: flex;
-            padding: 0.5rem;
-            margin: 0.5rem 0;
-            background-color: #1b1b25;
-            border-radius: 1rem;
-        }
+		body {
+			background-color: black;
+		}
 
-        .column {
-            padding: 10px;
-            text-align: right;
-            box-sizing: border-box;
-        }
+		input,
+		select {
+			width: 100%;
+			height: 100%;
+			border: 0;
+			outline: none;
+			box-sizing: border-box;
+			resize: vertical;
+			text-align: right;
+			color: white;
+			background-color: transparent;
+		}
 
-        .left {
-            flex-basis: 75%;
-        }
+		.row {
+			display: flex;
+			padding: 0.8rem 1rem;
+			margin: 0.5rem 0;
+			background-color: #1b1b25;
+			border-radius: 1rem;
+		}
 
-        .right {
-            flex-basis: 25%;
-        }
-    </style>
+		.column {
+			text-align: right;
+			box-sizing: border-box;
+		}
 
-    <script>
-        const fmt = new Intl.NumberFormat('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        });
+		.right {
+			flex-basis: 3.75rem;
+			flex-shrink: 0;
+		}
 
-        function formatting(number) {
-            let str = fmt.format(number);
-            if (str.substring(str.length - 2) === '00') {
-                str = str.slice(0, -3) + '&nbsp;&nbsp;&nbsp;';
-            } else if (str.substring(str.length - 1) === '0') {
-                str = str.slice(0, -1) + '&nbsp;';
-            }
-            return str;
-        }
+		.left {
+			flex: 1;
+		}
 
-        function calculate() {
-            const priceInput = document.getElementById('priceInput');
-            const calcInput = document.getElementById('calcInput');
-            const mathExpression = calcInput.value.replace(/[^\d+\-*/().]/g, '');
-            const choice = document.getElementById('choice');
-            let multiplier = 1;
+		.nested {
+			margin: 0;
+			padding: 0;
+		}
 
-            if (choice.value === '100n') {
-                multiplier = 100;
-            } else if (choice.value === 'Kn') {
-                multiplier = 1000;
-            }
+		.dt-layout-cell {
+			margin: -0.5rem 0 0 0 !important;
+			padding: 0 !important;
+		}
 
-            try {
-                const calcResult = eval(mathExpression) * multiplier;
-                document.getElementById("calcResult").innerHTML = formatting(calcResult);
+		.short {
+			width: 1rem;
+		}
 
-                const perN = Number(priceInput.value) / calcResult;
-                document.getElementById("perN").innerHTML = formatting(perN);
+		.table-font,
+		.dt-column-title,
+		.dt-empty {
+			font-size: x-small !important;
+		}
 
-                const per100N = (Number(priceInput.value) * 100) / calcResult;
-                document.getElementById("per100N").innerHTML = formatting(per100N);
+		.btn {
+			width: 100%;
+			height: 100%;
+			background: transparent;
+			border: none;
+			outline: none;
+		}
 
-                const perKN = (Number(priceInput.value) * 1000) / calcResult;
-                document.getElementById("perKN").innerHTML = formatting(perKN);
-            } catch (e) {
-                document.getElementById("calcResult").innerHTML = `[ ${e.message} ]`;
-                document.getElementById("perN").innerHTML = `[ ${e.message} ]`;
-                document.getElementById("per100N").innerHTML = `[ ${e.message} ]`;
-                document.getElementById("perKN").innerHTML = `[ ${e.message} ]`;
-            }
-        }
-    </script>
+		.resetBtn {
+			padding: 0.75rem 1.5rem;
+			border-radius: 1rem;
+		}
+
+		.resetBtn:hover {
+			background-color: green;
+		}
+
+		.deleteBtn:hover {
+			outline: 1px solid rgb(255, 0, 0);
+			background: rgb(128, 0, 0);
+		}
+	</style>
+
+	<script>
+
+		const fmt = new Intl.NumberFormat('en-US', {
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2,
+		});
+
+		function formatting(number) {
+			let str = number;
+			if (!isNaN(number)) {
+				str = fmt.format(number);
+				if (str.substring(str.length - 2) === '00') {
+					str = str.slice(0, -3) + '&nbsp;&nbsp;&nbsp;';
+				} else if (str.substring(str.length - 1) === '0') {
+					str = str.slice(0, -1) + '&nbsp;';
+				}
+			}
+			return str;
+		}
+
+		function calculate() {
+			const idInput = document.getElementById('idInput');
+			const priceInput = document.getElementById('priceInput');
+			const calcInput = document.getElementById('calcInput');
+			const mathExpression = calcInput.value.replace(/[^\d+\-*/().]/g, '');
+			const multiplierInput = document.getElementById('multiplierInput');
+			let multiplier = Number(multiplierInput.value);
+
+			try {
+				const amount = eval(mathExpression) * multiplier;
+				const price = Number(priceInput.value);
+				const pricePerAmount = price / amount;
+
+				return {
+					id: idInput.value,
+					amount: amount,
+					price: price,
+					pricePerAmount: pricePerAmount,
+				}
+			}
+
+			catch (e) {
+				return {
+					id: idInput.value,
+					amount: `[ ${e.message} ]`,
+					price: `[ ${e.message} ]`,
+					pricePerAmount: `[ ${e.message} ]`,
+				}
+			}
+		}
+
+		function refresh() {
+			const calculation = calculate();
+			document.getElementById("calcResult").innerHTML = formatting(calculation.amount);
+			document.getElementById("perN").innerHTML = formatting(calculation.pricePerAmount);
+			document.getElementById("per100N").innerHTML = formatting(calculation.pricePerAmount * 100);
+			document.getElementById("perKN").innerHTML = formatting(calculation.pricePerAmount * 1000);
+		}
+
+		function reset() {
+			document.getElementById('idInput').value = ``;
+			document.getElementById('priceInput').value = ``;
+			document.getElementById('calcInput').value = ``;
+			document.getElementById('multiplierInput').value = `1`;
+
+			document.getElementById('calcResult').innerHTML = ``;
+			document.getElementById('perN').innerHTML = ``;
+			document.getElementById('per100N').innerHTML = ``;
+			document.getElementById('perKN').innerHTML = ``;
+		}
+
+		$(document).ready(function () {
+			const table = $('#history-table').DataTable({
+				pageLength: -1,
+				bLengthChange: false,
+				bFilter: false,
+				bPaginate: false,
+				bInfo: false,
+				order: [[3, 'asc'], [1, 'asc'], [2, 'asc']],
+
+				columnDefs: [
+					{
+						targets: [0],
+						className: "table-font"
+					}, {
+						targets: -1,
+						data: null,
+						defaultContent: '<button class="btn deleteBtn">🗑️</button>',
+						className: "short"
+					}, {
+						render: $.fn.dataTable.render.number('.', '', 0, ''),
+						targets: [1, 2],
+						className: "short table-font"
+					}, {
+						render: $.fn.dataTable.render.number('.', ',', 2, ''),
+						targets: [3],
+						className: "short table-font"
+					},
+				]
+			});
+
+			$('#addHistory').on('click', function () {
+				const calculation = calculate();
+				table.row.add([calculation.id, calculation.price, calculation.amount, calculation.pricePerAmount, '']).draw(false);
+				reset();
+			});
+
+			$('#history-table tbody').on('click', 'button.deleteBtn', function () {
+				table.row($(this).parents('tr')).remove().draw();
+			});
+
+			let tablemultiplierprevValue = 1;
+			$('#ppnMultiplier').on('change', function () {
+				let newValue = parseInt($(this).val());
+
+				table.rows().every(function () {
+					let data = this.data();
+					let columnValue = parseFloat(data[3]);
+
+					if (!isNaN(columnValue)) {
+						if (newValue > tablemultiplierprevValue) {
+							data[3] = columnValue * (newValue / tablemultiplierprevValue);
+						} else {
+							data[3] = columnValue / (tablemultiplierprevValue / newValue);
+						}
+
+						this.data(data);
+					}
+				});
+
+				tablemultiplierprevValue = newValue;
+				table.draw(false);
+			});
+
+		});
+
+	</script>
 
 </head>
 
 
 <body>
 
-    <div class="row">
-        <div class="column left" id="calcResult">
+	<div class="row">
+		<div class="column left" id="calcResult"></div>
+		<div class="column right">n</div>
+	</div>
 
-        </div>
-        <div class="column right">
-            n
-        </div>
-    </div>
+	<div class="row">
+		<div class="column left" id="perN"></div>
+		<div class="column right">/n</div>
+	</div>
 
-    <div class="row">
-        <div class="column left" id="perN">
+	<div class="row">
+		<div class="column left" id="per100N"></div>
+		<div class="column right">/100n</div>
+	</div>
 
-        </div>
-        <div class="column right">
-            /n
-        </div>
-    </div>
+	<div class="row">
+		<div class="column left" id="perKN"></div>
+		<div class="column right">/Kn</div>
+	</div>
 
-    <div class="row">
-        <div class="column left" id="per100N">
+	<div class="row">
+		<div class="column left" id="">
+			<input style="text-align: right;" type="tel" id="priceInput" placeholder="price" oninput="refresh()">
+		</div>
+		<div class="column right">EUR</div>
+	</div>
 
-        </div>
-        <div class="column right">
-            /100n
-        </div>
-    </div>
+	<div class="row">
+		<div class="column left" id="">
+			<input style="text-align: right;" type="tel" id="calcInput" placeholder="amount" oninput="refresh()">
+		</div>
+		<div class="column right">
+			<select id="multiplierInput" name="multiplierInput" oninput="refresh()">
+				<option value="1">n</option>
+				<option value="100">100n</option>
+				<option value="1000">Kn</option>
+			</select>
+		</div>
+	</div>
 
-    <div class="row">
-        <div class="column left" id="perKN">
+	<div class="row">
+		<div class="column left" id="">
+			<input style="text-align: right;" type="text" id="idInput" placeholder="id">
+		</div>
+		<div class="column right">
+			<button id="addHistory" style="background-color: transparent; width: 66%;" class="">+</button>
+		</div>
+	</div>
 
-        </div>
-        <div class="column right">
-            /Kn
-        </div>
-    </div>
+	<div style="display: flex; justify-content: flex-end;">
+		<div class="row" style="padding: 0; margin: 0;">
+			<div class="column left">
+				<button id="addHistory" class="btn resetBtn" onclick="reset()">↺</button>
+			</div>
+		</div>
+	</div>
 
-    <div class="row">
-        <div class="column left" id="">
-            <input style="text-align: left;" type="number" id="priceInput" placeholder="price" oninput="calculate()">
-        </div>
-        <div class="column right">
-            EUR
-        </div>
-    </div>
+	<div class="history-container">
 
-    <div class="row">
-        <div class="column left" id="">
-            <input style="text-align: left;" type="tel" id="calcInput" placeholder="amount" oninput="calculate()">
-        </div>
-        <div class="column right">
-            <select id="choice" name="choice" oninput="calculate()">
-                <option value="n">n</option>
-                <option value="100n">100n</option>
-                <option value="Kn">Kn</option>
-            </select>
-        </div>
-    </div>
+		<!-- history title -->
+		<div style="display: flex; justify-content: center; margin-top: 1rem;">
+			<div style="font-size: small;">
+				history
+			</div>
+		</div>
+
+
+		<!-- history element -->
+		<div class="row">
+			<div class="column" style="width: 100%; text-align: left; ">
+
+				<table id="history-table" class="display" style="width: 100%; font-size: 12pt;">
+					<thead>
+						<tr>
+							<th>id</th>
+							<th>p</th>
+							<th>n</th>
+							<th>p/n</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+					</tbody>
+				</table>
+
+
+			</div>
+		</div>
+
+		<!-- p/n multiplier -->
+		<div style="display: flex; justify-content: flex-end;">
+			<div class="row" style="margin: 0;">
+				<div class="column left">
+					<select id="ppnMultiplier" name="" oninput="">
+						<option value="1">n</option>
+						<option value="100">100n</option>
+						<option value="1000">Kn</option>
+					</select>
+				</div>
+			</div>
+		</div>
+
+	</div>
 
 </body>
 
