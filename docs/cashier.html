@@ -177,7 +177,7 @@
 			const qrCode = document.getElementById('qrCode');
 			const previewDiv = document.getElementById('previewDiv');
 
-			const formattedText = formatCashier(itemsInput.innerText).join('\n');
+			const formattedText = formatCashier(itemsInput.innerText).join('\n').replaceAll(`\u231B`, ``);
 
 			previewDiv.innerHTML = `${previewTextBuilder(formattedText)}${(qrCode.innerText == ``) ? `` : `\n<br>\n&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;QRIS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>&nbsp;&nbsp;&nbsp;<img style="width: auto; height: auto;" src="${qrURL(qrCode.innerText)}">`}`;
 		}
@@ -222,7 +222,7 @@
 				} else if (line.startsWith('Total   ')) {
 					c.printText(line, c.ALIGNMENT_LEFT, c.FONT_DOUBLE_HEIGHT, c.FONT_EMPHASIZED);
 				} else if (line.startsWith('\u231B')) {
-					c.printText(line.substring(1), c.ALIGNMENT_LEFT, c.FONT_SIZE_SMALL, c.FONT_UNDERLINE);
+					c.printText(line.substring(1), c.ALIGNMENT_LEFT, c.FONT_SIZE_SMALL);
 				} else {
 					c.printText(line, c.ALIGNMENT_LEFT);
 				}
