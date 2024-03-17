@@ -64,7 +64,6 @@
 
 				for (let line of lines) {
 					const dtString = dateTimeToString(parseDateTime(line));
-					console.log(dtString);
 					if (dtString) line = dtString;
 
 					const words = line.split(/\s+/);
@@ -130,7 +129,7 @@
 					hourCycle: 'h23',
 				}
 
-				return (!isNaN(dt)) ? `${dt.toLocaleString("id-ID", optionWeekday)}, ${dt.toLocaleString("de-DE", optionDateTime)}` : null;
+				return (!isNaN(dt)) ? `\u231B${dt.toLocaleString("id-ID", optionWeekday)}, ${dt.toLocaleString("de-DE", optionDateTime)}`.toUpperCase() : null;
 			}
 
 			const items = itemize(itemsString.trim());
@@ -222,6 +221,8 @@
 					c.printText(line, c.ALIGNMENT_LEFT, c.FONT_DOUBLE_HEIGHT);
 				} else if (line.startsWith('Total   ')) {
 					c.printText(line, c.ALIGNMENT_LEFT, c.FONT_DOUBLE_HEIGHT, c.FONT_EMPHASIZED);
+				} else if (line.startsWith('\u231B')) {
+					c.printText(line.substring(1), c.ALIGNMENT_LEFT, c.FONT_SIZE_SMALL, c.FONT_UNDERLINE);
 				} else {
 					c.printText(line, c.ALIGNMENT_LEFT);
 				}
