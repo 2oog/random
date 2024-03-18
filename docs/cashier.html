@@ -153,6 +153,8 @@
 
 		function previewTextBuilder(s) {
 
+			// .replaceAll(`\u231B`, ``)
+
 			function replaceSpace(s) {
 				return s.replaceAll(` `, `&nbsp;`);
 			}
@@ -163,6 +165,8 @@
 				if (line == ``) line = `<br>`;
 				if (lines[i] == '   EXPENSE REIMBURSEMENT FORM   ' || lines[i].startsWith('Total   ')) {
 					lines[i] = `<div class="stretch" style="font-weight: bold;">${line}</div>`;
+				} else if (line.startsWith('\u231B')) {
+					lines[i] = `<div class="small-text">${lines[i].substring(1)}</div>`;
 				} else {
 					lines[i] = `<div>${line}</div>`;
 				}
@@ -177,7 +181,7 @@
 			const qrCode = document.getElementById('qrCode');
 			const previewDiv = document.getElementById('previewDiv');
 
-			const formattedText = formatCashier(itemsInput.innerText).join('\n').replaceAll(`\u231B`, ``);
+			const formattedText = formatCashier(itemsInput.innerText).join('\n');
 
 			previewDiv.innerHTML = `${previewTextBuilder(formattedText)}${(qrCode.innerText == ``) ? `` : `\n<br>\n&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;QRIS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>&nbsp;&nbsp;&nbsp;<img style="width: auto; height: auto;" src="${qrURL(qrCode.innerText)}">`}`;
 		}
