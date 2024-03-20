@@ -44,7 +44,7 @@
 
 		.row {
 			display: flex;
-			padding: 0.6rem 1rem;
+			padding: 0.45rem 1rem;
 			margin: 0.5rem 0;
 			background-color: #1b1b25;
 			border-radius: 1rem;
@@ -189,6 +189,7 @@
 
 		function refresh() {
 			const calculation = calculate();
+			document.getElementById("calcPrice").innerHTML = formatting(calculation.price);
 			document.getElementById("calcResult").innerHTML = formatting(calculation.amount);
 			document.getElementById("perN").innerHTML = formatting(calculation.pricePerAmount);
 			document.getElementById("per100N").innerHTML = formatting(calculation.pricePerAmount * 100);
@@ -280,6 +281,11 @@
 
 
 <body>
+
+	<div class="row">
+		<div class="column left" id="calcPrice"></div>
+		<div class="column right" style="transform: translateX(6px);">&#x1FA99;</div>
+	</div>
 
 	<div class="row">
 		<div class="column left" id="calcResult"></div>
