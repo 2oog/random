@@ -19,10 +19,6 @@
 			outline: 1px solid gray;
 		} */
 
-		:root {
-			--border-radius: 1rem;
-		}
-
 		* {
 			font-family: 'Chivo Mono', monospace;
 			color: white;
@@ -48,7 +44,7 @@
 
 		.row {
 			display: flex;
-			padding: 0.8rem 1rem;
+			padding: 0.6rem 1rem;
 			margin: 0.5rem 0;
 			background-color: #1b1b25;
 			border-radius: 1rem;
@@ -96,18 +92,45 @@
 			outline: none;
 		}
 
-		.resetBtn {
-			padding: 0.75rem 1.5rem;
+		.deleteBtn {
+			transform: translateY(-1px);
 			border-radius: 1rem;
-		}
-
-		.resetBtn:hover {
-			background-color: green;
+			padding: 2px 3px 4px 3px;
+			font-size: 12px;
 		}
 
 		.deleteBtn:hover {
 			outline: 1px solid rgb(255, 0, 0);
 			background: rgb(128, 0, 0);
+		}
+
+		.right-container {
+			display: flex;
+			justify-content: end;
+		}
+
+		.btn-green {
+			display: inline-block;
+			/* padding: 0.5rem 2rem; */
+			cursor: pointer;
+			text-align: center;
+			text-decoration: none;
+			outline: none;
+			color: #fff;
+			background-color: #04AA6D;
+			border: none;
+			border-radius: 1rem;
+			box-shadow: 0 5px rgb(48, 48, 61);
+		}
+
+		.btn-green:hover {
+			background-color: #3e8e41
+		}
+
+		.btn-green:active {
+			background-color: #3e8e41;
+			box-shadow: 0 0 #000;
+			transform: translateY(5px);
 		}
 	</style>
 
@@ -136,12 +159,14 @@
 			const priceInput = document.getElementById('priceInput');
 			const calcInput = document.getElementById('calcInput');
 			const mathExpression = calcInput.value.replace(/[^\d+\-*/().]/g, '');
-			const multiplierInput = document.getElementById('multiplierInput');
-			let multiplier = Number(multiplierInput.value);
+			const multiplierAmountInput = document.getElementById('multiplierAmountInput');
+			let multiplierAmount = Number(multiplierAmountInput.value);
+			const multiplierPriceInput = document.getElementById('multiplierPriceInput');
+			let multiplierPrice = Number(multiplierPriceInput.value);
 
 			try {
-				const amount = eval(mathExpression) * multiplier;
-				const price = Number(priceInput.value);
+				const amount = eval(mathExpression) * multiplierAmount;
+				const price = Number(priceInput.value) * multiplierPrice;
 				const pricePerAmount = price / amount;
 
 				return {
@@ -174,7 +199,8 @@
 			document.getElementById('idInput').value = ``;
 			document.getElementById('priceInput').value = ``;
 			document.getElementById('calcInput').value = ``;
-			document.getElementById('multiplierInput').value = `1`;
+			document.getElementById('multiplierAmountInput').value = `1`;
+			document.getElementById('multiplierPriceInput').value = `1000`;
 
 			document.getElementById('calcResult').innerHTML = ``;
 			document.getElementById('perN').innerHTML = ``;
@@ -199,6 +225,7 @@
 						targets: -1,
 						data: null,
 						defaultContent: '<button class="btn deleteBtn">🗑️</button>',
+						// defaultContent: '<button class="btn-green" style="padding: 3px 4px;font-size: x-small; background-color: black">🗑️</button>',
 						className: "short"
 					}, {
 						render: $.fn.dataTable.render.number('.', '', 0, ''),
@@ -276,17 +303,10 @@
 
 	<div class="row">
 		<div class="column left" id="">
-			<input style="text-align: right;" type="tel" id="priceInput" placeholder="price" oninput="refresh()">
-		</div>
-		<div class="column right">EUR</div>
-	</div>
-
-	<div class="row">
-		<div class="column left" id="">
 			<input style="text-align: right;" type="tel" id="calcInput" placeholder="amount" oninput="refresh()">
 		</div>
 		<div class="column right">
-			<select id="multiplierInput" name="multiplierInput" oninput="refresh()">
+			<select id="multiplierAmountInput" name="multiplierAmountInput" oninput="refresh()">
 				<option value="1">n</option>
 				<option value="100">100n</option>
 				<option value="1000">Kn</option>
@@ -296,20 +316,32 @@
 
 	<div class="row">
 		<div class="column left" id="">
-			<input style="text-align: right;" type="text" id="idInput" placeholder="id">
+			<input style="text-align: right;" type="tel" id="priceInput" placeholder="price" oninput="refresh()">
 		</div>
 		<div class="column right">
-			<button id="addHistory" style="background-color: transparent; width: 66%;" class="">+</button>
+			<select id="multiplierPriceInput" name="multiplierPriceInput" oninput="refresh()">
+				<option value="1000">K&#x1FA99;</option>
+				<option value="1000000">M&#x1FA99;</option>
+				<option value="1000000000">B&#x1FA99;</option>
+				<option value="1">&#x1FA99;</option>
+			</select>
 		</div>
 	</div>
 
-	<div style="display: flex; justify-content: flex-end;">
-		<div class="row" style="padding: 0; margin: 0;">
-			<div class="column left">
-				<button id="addHistory" class="btn resetBtn" onclick="reset()">↺</button>
-			</div>
+	<div class="row">
+		<div class="column left" id="">
+			<input style="text-align: right;" type="text" id="idInput" placeholder="id">
+		</div>
+		<div class="column right">
+			<button id="addHistory" class="btn-green" style="margin-right: -6px; padding: 0.03rem 1.4rem;">+</button>
 		</div>
 	</div>
+
+	<div class="right-container">
+		<button id="addHistory" class="btn-green" style="padding: 0.5rem 2rem; font-size: 24px;"
+			onclick="reset()">↺</button>
+	</div>
+
 
 	<div class="history-container">
 
@@ -320,11 +352,9 @@
 			</div>
 		</div>
 
-
 		<!-- history element -->
 		<div class="row">
-			<div class="column" style="width: 100%; text-align: left; ">
-
+			<div class="column" style="width: 100%; text-align: left">
 				<table id="history-table" class="display" style="width: 100%; font-size: 12pt;">
 					<thead>
 						<tr>
@@ -338,13 +368,11 @@
 					<tbody>
 					</tbody>
 				</table>
-
-
 			</div>
 		</div>
 
 		<!-- p/n multiplier -->
-		<div style="display: flex; justify-content: flex-end;">
+		<div class="right-container">
 			<div class="row" style="margin: 0;">
 				<div class="column left">
 					<select id="ppnMultiplier" name="" oninput="">
