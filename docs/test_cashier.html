@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Chivo+Mono&display=swap" rel="stylesheet">
+	<!-- <link href="https://fonts.googleapis.com/css2?family=Wellfleet&display=swap" rel="stylesheet"> -->
+
+	<style>
+		* {
+			/* font-family: 'OCR A', monospace !important; */
+			color: black !important;
+		}
+
+		.reduce {
+			margin: 0rem 0;
+			transform: scale(1, 1.75);
+		}
+	</style>
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta charset="UTF-8">
+
+	<link rel="stylesheet" href="./css/global.css">
+
+	<script src="./js/rawbt-thermal-printer-core.js"></script>
+	<script src="./js/rawbt-iconv-lite.bundle.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+	<script>
+		function formatCashier(itemsString) {
+			const LINE_CHARACTER_LENGTH = 32;
+
+			function fillSpace(s) {
+				return s.replaceAll(` `, `&nbsp;`);
+			}
+
+			function itemize(s) {
+				const items = [];
+				const lines = s.split("\n");
+				for (const line of lines) {
+					const parts = line.split(";");
+					let item_name, item_amount, item_unit = 'pcs', item_price; // Default item_unit to 'pcs'
+					try {
+						item_name = parts[0];
+						// Check if item_amount includes a unit
+						if (parts[1].includes('#')) {
+							const amountParts = parts[1].split('#');
+							item_amount = parseFloat(amountParts[0], 10);
+							item_unit = amountParts[1]; // Override default unit with specified unit
+						} else {
+							item_amount = parseFloat(parts[1], 10);
+						}
+						item_price = parseInt(parts[2], 10);
+					} catch (exception) {
+						[item_name, item_amount, item_unit, item_price] = ["[err]", 0, 'pcs', 0]; // Include 'pcs' as default value for error case
+					}
+					items.push({ item_name, item_amount, item_unit, item_price });
+				}
+				return items;
+			}
+
+			function formatString(s) {
+				s = s.replaceAll(",,,", "\n");
+
+				let lines = s.split('\n');
+				let resultLines = [];
+
+				for (let line of lines) {
+					const dtString = dateTimeToString(parseDateTime(line));
+					if (dtString) line = dtString;
+
+					const words = line.split(/\s+/);
+					let formattedString = "";
+					let currentLine = "";
+					for (const word of words) {
+						if ((currentLine + word).length > LINE_CHARACTER_LENGTH) {
+							formattedString += currentLine.trimEnd() + "\n";
+							currentLine = word + " ";
+						} else {
+							currentLine += word + " ";
+						}
+					}
+					resultLines.push(formattedString + currentLine.trim());
+				}
+
+				return resultLines;
+			}
+
+			function formatPrices(amount, unit, price) {
+				const total = amount * price;
+				const formatted = (`${amount.toLocaleString()} ${unit} x ${price.toLocaleString()}`.padEnd(LINE_CHARACTER_LENGTH - `${total.toLocaleString()}`.length)) + `${total.toLocaleString()}`;
+				return formatted;
+			}
+
+			function formatTotal(items) {
+				const total = items.reduce((acc, { item_amount, item_price }) => acc + item_amount * item_price, 0);
+				return "Total".padEnd(LINE_CHARACTER_LENGTH - `${total.toLocaleString()}`.length) + `${total.toLocaleString()}`;
+			}
+
+			function separator(char = "-") {
+				return char.repeat(LINE_CHARACTER_LENGTH);
+			}
+
+			function parseDateTime(dateTimeString) {
+				// date time string format must be "1.2. 21:34" or "31.12.2024. 12:34"
+				const dateTimeArr = dateTimeString.split('.').map(str => parseInt(str.trim(), 10));
+
+				let day = dateTimeArr[0];
+				let month = dateTimeArr[1] - 1; // Adjust month index
+				let year = new Date().getFullYear();
+				let hour = dateTimeArr[2];
+				let minute = dateTimeArr[3];
+
+				if (dateTimeArr.length == 5) {
+					year = dateTimeArr[2];
+					hour = dateTimeArr[3];
+					minute = dateTimeArr[4];
+				}
+
+				return new Date(year, month, day, hour, minute, 0);
+			}
+
+			function dateTimeToString(dt) {
+				const optionWeekday = { weekday: 'long' };
+
+				const optionDateTime = {
+					day: 'numeric',
+					month: 'numeric',
+					year: 'numeric',
+					hour: 'numeric',
+					minute: 'numeric',
+					hourCycle: 'h23',
+				}
+
+				return (!isNaN(dt)) ? `\u231B${dt.toLocaleString("id-ID", optionWeekday)}, ${dt.toLocaleString("de-DE", optionDateTime)}`.toUpperCase() : null;
+			}
+
+			const items = itemize(itemsString.trim());
+			let lines = [dateTimeToString(new Date()), separator('—'), "   EXPENSE REIMBURSEMENT FORM   ", separator('—')];
+
+			for (let i = 0; i < items.length; i++) {
+				if (i > 0) lines.push("");
+
+				const { item_name, item_amount, item_unit, item_price } = items[i];
+
+				lines.push(...formatString(item_name));
+				lines.push(formatPrices(item_amount, item_unit, item_price));
+			}
+
+			lines.push(separator('—'), formatTotal(items), separator('—'));
+
+			console.log(lines);
+
+			return lines;
+		}
+
+		/* function previewTextBuilder(s) {
+
+			// .replaceAll(`\u231B`, ``)
+
+			function replaceSpace(s) {
+				return s.replaceAll(` `, `&nbsp;`);
+			}
+
+			let lines = s.trim().split('\n');
+			for (let i = 0; i < lines.length; i++) {
+				let line = replaceSpace(lines[i]);
+				if (line == ``) line = `<br>`;
+				if (lines[i] == '   EXPENSE REIMBURSEMENT FORM   ' || lines[i].startsWith('Total   ')) {
+					lines[i] = `<div class="reduce stretch" style="font-weight: bold;">${line}</div>`;
+				} else if (line.startsWith('\u231B')) {
+					lines[i] = `<div class="reduce small-text">${lines[i].substring(1)}</div>`;
+				} else {
+					lines[i] = `<div class="reduce">${line}</div>`;
+				}
+			}
+
+			return lines.join('\n');
+		} */
+
+		function previewTextBuilder(s) {
+
+			// .replaceAll(`\u231B`, ``)
+
+			function replaceSpace(s) {
+				return s.replaceAll(` `, `&nbsp;`);
+			}
+
+			let lines = s.trim().split('\n');
+			for (let i = 0; i < lines.length; i++) {
+				let line = replaceSpace(lines[i]);
+				if (line == ``) line = `<br>`;
+				if (lines[i] == '   EXPENSE REIMBURSEMENT FORM   ' || lines[i].startsWith('Total   ')) {
+					lines[i] = `<div class="bbb thick" style="font-weight: bold;">${line}</div>`;
+				} else if (line.startsWith('\u231B')) {
+					lines[i] = `<div class="aaa small-text">${lines[i].substring(1)}</div>`;
+				} else {
+					lines[i] = `<div class="aaa">${line}</div>`;
+				}
+			}
+
+			return lines.join('\n');
+		}
+
+		function preview() {
+
+			const itemsInput = document.getElementById('itemsInput');
+			const qrCode = document.getElementById('qrCode');
+			const previewDiv = document.getElementById('customImage');
+
+			const formattedText = formatCashier(itemsInput.innerText).join('\n');
+
+			previewDiv.innerHTML = `${previewTextBuilder(formattedText)}${(qrCode.innerText == ``) ? `` : `\n<br>\n&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;QRIS&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br>&nbsp;&nbsp;&nbsp;<img style="width: auto; height: auto;" src="${qrURL(qrCode.innerText)}">`}`;
+		}
+
+		function qrURL(s) {
+			return `https://chart.googleapis.com/chart?cht=qr&choe=UTF-8&chs=250x250&chl=${encodeURIComponent(s)}`;
+		}
+
+		function fontDemo() {
+			var c = new PosPrinterJob(getCurrentDriver(), getCurrentTransport());
+			c.initialize();
+
+			c.printText("Font sizes:", c.ALIGNMENT_LEFT, c.FONT_SIZE_BIG);
+			c.printText("small FONT", c.ALIGNMENT_LEFT, c.FONT_SIZE_SMALL);
+			c.printText("medium 1 FONT", c.ALIGNMENT_LEFT, c.FONT_SIZE_MEDIUM1);
+			c.printText("medium 2 FONT", c.ALIGNMENT_LEFT, c.FONT_SIZE_MEDIUM2);
+			c.printText("medium 3 FONT", c.ALIGNMENT_LEFT, c.FONT_SIZE_MEDIUM3);
+			c.printText("big FONT", c.ALIGNMENT_LEFT, c.FONT_SIZE_BIG);
+			c.printText("double WIDTH", c.ALIGNMENT_LEFT, c.FONT_DOUBLE_WIDTH);
+			c.printText("double HEIGHT", c.ALIGNMENT_LEFT, c.FONT_DOUBLE_HEIGHT);
+			c.setPrintMode(c.FONT_SIZE_BIG + c.FONT_UNDERLINE).printLine("Example");
+			c.feed(3);
+
+			c.execute();
+		}
+
+		function print() {
+
+			console.log('PRINTING');
+
+			const itemsInput = document.getElementById('itemsInput');
+			const qrCode = document.getElementById('qrCode');
+
+			const formattedLines = formatCashier(itemsInput.innerText);
+
+			let c = new PosPrinterJob(getCurrentDriver(), getCurrentTransport());
+			c.initialize();
+
+			for (const line of formattedLines) {
+				if (line == '   EXPENSE REIMBURSEMENT FORM   ') {
+					c.printText(line, c.ALIGNMENT_LEFT, c.FONT_DOUBLE_HEIGHT);
+				} else if (line.startsWith('Total   ')) {
+					c.printText(line, c.ALIGNMENT_LEFT, c.FONT_DOUBLE_HEIGHT, c.FONT_EMPHASIZED);
+				} else if (line.startsWith('\u231B')) {
+					c.printText(line.substring(1), c.ALIGNMENT_LEFT, c.FONT_SIZE_SMALL);
+				} else {
+					c.printText(line, c.ALIGNMENT_LEFT);
+				}
+			}
+
+			if (qrCode.innerText != ``) {
+				let code = qrCode.innerText;
+				let e = 'L';
+				let s = 8;
+				let m = 'Model 2';
+				c.feed(1);
+				c.printText('QRIS', c.ALIGNMENT_CENTER);
+				c.center();
+				c.printQrCode(code, e, s, m);
+			}
+
+			c.feed(2);
+			c.execute();
+
+		}
+
+
+
+		// function imagePrint() {
+		//     const previewDiv = document.getElementById('previewDiv');
+		//     console.log(self.crypto.randomUUID());
+
+		//     html2canvas(previewDiv, { scale: 4 }).then(function (canvas) {
+		//         var img = canvas.toDataURL("image/png");
+		//         document.getElementById('output').src = img;
+		//     });
+		// }
+
+		function downloadImage() {
+			// const previewDiv = document.getElementById('previewDiv');
+			const previewDiv = document.getElementById('customImage');
+
+			html2canvas(previewDiv, { scale: 2 }).then(function (canvas) {
+				var img = canvas.toDataURL("image/png");
+
+				function sendToPrinter(base64String) {
+					window.open(`rawbt:${base64String}`);
+				}
+
+				sendToPrinter(img);
+
+				// Create a temporary anchor element
+				var downloadLink = document.createElement('a');
+				downloadLink.setAttribute('href', img);
+				downloadLink.setAttribute('download', `${self.crypto.randomUUID()}.png`);
+				downloadLink.style.display = 'none';
+
+				// Append the anchor element to the body
+				document.body.appendChild(downloadLink);
+
+				// Simulate a click to trigger the download
+				downloadLink.click();
+
+				// Clean up
+				document.body.removeChild(downloadLink);
+			});
+		}
+
+
+	</script>
+
+</head>
+
+
+<body>
+	<div class="row">
+		<div class="row-title">Item lists (item;amount#unit;price)</div>
+		<div class="row-content">
+			<div contenteditable id="itemsInput" oninput="preview()"></div>
+		</div>
+	</div>
+
+	<div class="row">
+		<div class="row-title">QRIS Payment Code</div>
+		<div class="row-content">
+			<div contenteditable id="qrCode" oninput="preview()"></div>
+		</div>
+	</div>
+
+	<div class="row">
+		<div class="row-title">Preview</div>
+		<div class="row-content">
+			<div id="previewDiv" style="width: fit-content;"></div>
+		</div>
+	</div>
+	</div>
+
+	<div class="row">
+		<div class="row-title">Preview image from html2canvas</div>
+		<div class="row-content">
+			<div id="html2canvas-preview">
+				<img id="output" src="">
+			</div>
+		</div>
+	</div>
+
+	<div class="button-container">
+		<button class="button-print" id="button-print" onclick="print()">🖨️ Print</button>
+	</div>
+
+	<div class="button-container">
+		<button class="button-print" id="image-print" onclick="downloadImage()">🖼️</button>
+	</div>
+
+	<div style="margin-top: 2rem;"></div>
+
+	<style>
+		.aaa {
+			display: block;
+			-webkit-transform: scale(1, 1.5);
+			-moz-transform: scale(1, 1.5);
+			-o-transform: scale(1, 1.5);
+			transform: scale(1, 1.5);
+			padding-bottom: 6px;
+		}
+
+		.bbb {
+			display: block;
+			-webkit-transform: scale(1, 3);
+			-moz-transform: scale(1, 3);
+			-o-transform: scale(1, 3);
+			transform: scale(1, 3);
+			padding-top: 12px;
+			padding-bottom: 15px;
+		}
+
+		.thick {
+			font-weight: 900;
+		}
+	</style>
+	<div style="background-color: white; width: fit-content; height: fit-content; padding-top: 1rem;" id="customImage">
+		<!-- <div class="aaa small-text">KAMIS, 28.3.2024, 07:50</div>
+		<div class="aaa">————————————————————————————————</div>
+		<div class="bbb thick">&nbsp;&nbsp;&nbsp;EXPENSE REIMBURSEMENT FORM</div>
+		<div class="aaa">————————————————————————————————</div>
+		<div class="aaa small-text">JUMAT, 22.3.2024, 17:00</div>
+		<div class="aaa">Sop Buah @SlametRiadi2</div>
+		<div class="aaa">5 pcs x 8,000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;40,000</div>
+		<br>
+		<div class="aaa small-text">SABTU, 23.3.2024, 07:00</div>
+		<div class="aaa">Asam Sitrat Gajah Sachet</div>
+		<div class="aaa">4 pcs x 3,500&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;14,000</div>
+		<br>
+		<div class="aaa small-text">SABTU, 23.3.2024, 17:00</div>
+		<div class="aaa">Crepes @RimbaDharma</div>
+		<div class="aaa">4 pcs x 6,000&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;24,000</div>
+
+		<div class="aaa">————————————————————————————————</div>
+		<div class="bbb thick">
+			Total&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;78,000
+		</div>
+		<div class="aaa">————————————————————————————————</div> -->
+	</div>
+</body>
+
+</html>
